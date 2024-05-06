@@ -8,7 +8,12 @@ import (
 	"terraform-provider-teamcity/models"
 )
 
+type ParentProject struct {
+	Locator string `json:"locator,omitempty"`
+	Id      string `json:"id,omitempty"`
+}
 type Project struct {
+	ParentProject   *ParentProject   `json:"parentProject"`
 	Name            string           `json:"name"`
 	Id              *string          `json:"id,omitempty"`
 	ProjectFeatures *ProjectFeatures `json:"projectFeatures,omitempty"`

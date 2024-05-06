@@ -27,6 +27,7 @@ type projectResource struct {
 }
 
 type projectResourceModel struct {
+	ParentProjectId types.String `tfsdk:"parent_project_id"`
 	Name types.String `tfsdk:"name"`
 	Id   types.String `tfsdk:"id"`
 }
@@ -39,6 +40,9 @@ func (r *projectResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 	resp.Schema = schema.Schema{
 		Description: "A project in TeamCity is a collection of build configurations. More info [here](https://www.jetbrains.com/help/teamcity/project.html)",
 		Attributes: map[string]schema.Attribute{
+			"parent_project_id": schema.StringAttribute{
+				Required: true,
+			},
 			"name": schema.StringAttribute{
 				Required: true,
 			},
@@ -70,6 +74,7 @@ func (r *projectResource) Create(ctx context.Context, req resource.CreateRequest
 
 	project := client.Project{
 		Name: plan.Name.ValueString(),
+		ParentProject: &client.ParentProject{Locator: plan.ParentProjectId.ValueString()},
 	}
 	if !plan.Id.IsUnknown() {
 		val := plan.Id.ValueString()
@@ -88,6 +93,7 @@ func (r *projectResource) Create(ctx context.Context, req resource.CreateRequest
 	var newState projectResourceModel
 	newState.Name = types.StringValue(result.Name)
 	newState.Id = types.StringValue(*result.Id)
+	newState.ParentProjectId = types.StringValue(result.ParentProject.Id)
 
 	diags = resp.State.Set(ctx, newState)
 	resp.Diagnostics.Append(diags...)
@@ -157,6 +163,11 @@ func (r *projectResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
+	if result, ok := r.setFieldString(resourceId, "parent_project_id", oldState.ParentProjectId, plan.ParentProjectId, &resp.Diagnostics); ok {
+		newState.ParentProjectId = result
+	} else {
+		return
+	}
 	diags = resp.State.Set(ctx, newState)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -190,6 +201,7 @@ func (r *projectResource) readState(result client.Project) (projectResourceModel
 	var newState projectResourceModel
 	newState.Name = types.StringValue(result.Name)
 	newState.Id = types.StringValue(*result.Id)
+	newState.ParentProjectId = types.StringValue(result.ParentProject.Id)
 
 	return newState, nil
 }
